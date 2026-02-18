@@ -21,19 +21,20 @@
 
   <table>
     <thead>
-      <tr><th>Вопрос</th><th>Ответ</th><th>Участник</th><th>Время</th><th>Действия</th></tr>
+      <tr><th>Вопрос</th><th>Участник</th><th>Время</th><th>Ответ</th><th>Действия</th></tr>
     </thead>
     <tbody>
       {% for a in answers %}
         <tr>
           <td>{{ a.question.text|truncatechars:120 }}</td>
-          <td>{{ a.answer_text }}</td>
           <td>{% if a.team_name %}{{ a.team_name }}{% else %}{{ a.user_id }}{% endif %}</td>
           <td>{{ a.submitted_at|localtime }}</td>
+          <td>{{ a.answer_text }}</td>
           <td>
             <form id="mark_{{ a.id }}" method="post" data-base="/admin/game/{{ game.id }}/mark_answer/__ID__/" action="" style="display:inline">
               {% csrf_token %}
               <input type="hidden" name="action" value="">
+              <input type="hidden" name="next" value="{{ request.path }}">
             </form>
             <button onclick="(function(){document.getElementById('mark_{{ a.id }}').action=document.getElementById('mark_{{ a.id }}').datasetBase.replace('__ID__','{{ a.id }}');document.getElementById('mark_{{ a.id }}').querySelector('input[name=action]').value='correct';document.getElementById('mark_{{ a.id }}').submit();})()">Правильно</button>
             <button onclick="(function(){document.getElementById('mark_{{ a.id }}').action=document.getElementById('mark_{{ a.id }}').datasetBase.replace('__ID__','{{ a.id }}');document.getElementById('mark_{{ a.id }}').querySelector('input[name=action]').value='incorrect';document.getElementById('mark_{{ a.id }}').submit();})()">Неверно</button>

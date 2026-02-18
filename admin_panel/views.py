@@ -138,6 +138,11 @@ def mark_answer(request, game_id, answer_id):
 
     async_to_sync(channel_layer.group_send)(f'game_{game_id}', {'type': 'update_rating', 'ratings': ratings})
 
+    # redirect back to caller if provided
+    next_url = request.POST.get('next')
+    if next_url and next_url.startswith('/'):
+        return redirect(next_url)
+
     return redirect(reverse('admin_panel:moderate_answers', args=[game_id]))
 
 
