@@ -117,3 +117,30 @@ class Answer(models.Model):
             except Exception:
                 participant = None
             update_score(participant, self.question, self, self.bet_used)
+
+
+# Auto-mark answers for choice questions when correct_answer is set/updated
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+
+@receiver(post_save, sender=Question)
+def auto_mark_answers_on_correct_answer(sender, instance, created, **kwargs):
+    # Only for choice questions with a non-empty correct_answer
+    try:
+        if instance.type != Question.TYPE_CHOICE or not instance.correct_answer:
+            return
+    except Exception:
+        return
+
+    # find answers for this question that are not yet moderated
+    qs = Answer.objects.filter(question=instance, is_correct__isnull=True)
+    if not qs.exists():
+        return
+
+    # Mark answers whose text matches correct_answer (case-insensitive) as correct
+    matches = qs.filter(answer_text__iexact=instance.correct_answer)
+    from .utils import update_score
+    for a in matches:
+        a.is_correct = True
+        a.save()  # Answer.save will call update_score if needed

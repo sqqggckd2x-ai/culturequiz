@@ -24,14 +24,18 @@ def update_score(participant, question, answer, bet_used):
     except Exception:
         bet = 0
 
-    if answer.is_correct:
-        if bet > 0:
-            pts = question.points * bet * question.bet_multiplier
+    # New scoring rules:
+    # - If no bet (bet == 0): correct -> question.points, incorrect -> 0
+    # - If bet > 0: correct -> question.points + bet, incorrect -> -bet
+    # This follows: base points plus coefficient for correct; negative of coefficient for incorrect.
+    if bet > 0:
+        if answer.is_correct:
+            pts = question.points + bet
         else:
-            pts = question.points
+            pts = -bet
     else:
-        if bet > 0:
-            pts = - (question.points * bet * question.bet_multiplier)
+        if answer.is_correct:
+            pts = question.points
         else:
             pts = 0
 
