@@ -59,7 +59,9 @@
           </div>
 
           <div class="bet hidden" id="bet-area">
-            <label>Ставка: <input type="number" id="bet-input" min="1" value="1"> <span id="max-bet"></span></label>
+            <!-- Bet UI is rendered by JS: strict buttons (+1/+2). Hidden input stores selected value -->
+            <div class="bet-controls" id="bet-controls"></div>
+            <input type="hidden" id="bet-input-hidden" value="0">
           </div>
 
             <div style="margin-top:8px">
