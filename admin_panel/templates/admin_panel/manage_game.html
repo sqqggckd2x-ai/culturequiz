@@ -28,6 +28,12 @@
               <label>Длительность (сек): <input type="number" name="duration" value="30" min="5"></label>
               <button type="button" onclick="sendQuestion('send_q_{{ q.id }}')">Отправить игрокам</button>
             </form>
+            <div style="margin-top:6px">
+              <form id="stop_q_{{ q.id }}" method="post" action="{% url 'admin_panel:stop_answers_question' game.id q.id %}" style="display:inline">{% csrf_token %}
+                <button type="button" onclick="stopAnswers('stop_q_{{ q.id }}')">Остановить приём ответов</button>
+              </form>
+              <a href="{% url 'admin_panel:moderate_answers_question' game.id q.id %}" target="_blank" style="margin-left:8px">Модерировать ответы</a>
+            </div>
           </div>
         {% endfor %}
       </div>

@@ -1,0 +1,49 @@
+{% load tz %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Модерация ответов — {{ question.text|truncatechars:60 }}</title>
+  <style>body{font-family:Arial,Helvetica,sans-serif;margin:20px} table{width:100%;border-collapse:collapse} th,td{border:1px solid #eee;padding:8px;text-align:left} .correct{background:#e6ffe6} .incorrect{background:#ffe6e6}</style>
+  <script>
+    function mark(answerId, action){
+      const form = document.getElementById('mark_' + answerId);
+      form.action = form.datasetBase.replace('__ID__', answerId);
+      form.querySelector('input[name=action]').value = action;
+      form.submit();
+    }
+  </script>
+</head>
+<body>
+  <h1>Модерация ответов — вопрос: {{ question.text }}</h1>
+  <a href="{% url 'admin_panel:manage_game' game.id %}">Назад к управлению</a>
+
+  <table>
+    <thead>
+      <tr><th>Ответ</th><th>Участник</th><th>Время</th><th>Статус</th><th>Действия</th></tr>
+    </thead>
+    <tbody>
+      {% for a in answers %}
+        <tr class="{% if a.is_correct %}correct{% elif a.is_correct == False %}incorrect{% endif %}">
+          <td>{{ a.answer_text }}</td>
+          <td>{{ a.team_name or a.user_id }}</td>
+          <td>{{ a.submitted_at|localtime }}</td>
+          <td>{% if a.is_correct == None %}Не проверено{% elif a.is_correct %}Правильно{% else %}Неверно{% endif %}</td>
+          <td>
+            <form id="mark_{{ a.id }}" method="post" data-base="{% url 'admin_panel:mark_answer' game.id '__ID__' %}" action="" style="display:inline">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="">
+            </form>
+            <button onclick="(function(){document.getElementById('mark_{{ a.id }}').action=document.getElementById('mark_{{ a.id }}').datasetBase.replace('__ID__','{{ a.id }}');document.getElementById('mark_{{ a.id }}').querySelector('input[name=action]').value='correct';document.getElementById('mark_{{ a.id }}').submit();})()">✔️</button>
+            <button onclick="(function(){document.getElementById('mark_{{ a.id }}').action=document.getElementById('mark_{{ a.id }}').datasetBase.replace('__ID__','{{ a.id }}');document.getElementById('mark_{{ a.id }}').querySelector('input[name=action]').value='incorrect';document.getElementById('mark_{{ a.id }}').submit();})()">✖️</button>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5">Нет ответов на этот вопрос</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+</body>
+</html>

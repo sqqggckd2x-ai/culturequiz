@@ -81,6 +81,23 @@ def stop_answers(request, game_id):
 
 @login_required
 @user_passes_test(superuser_required)
+@require_POST
+def stop_answers_question(request, game_id, question_id):
+    # stop accepting answers (immediately) for current active question
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(f'game_{game_id}', {'type': 'stop_answers', 'question_id': question_id})
+    # persist state on game
+    game = Game.objects.get(pk=game_id)
+    game.accepting_answers = False
+    # if active_question matches, clear it
+    if game.active_question and game.active_question.id == question_id:
+        game.active_question = None
+    game.save()
+    return redirect(reverse('admin_panel:manage_game', args=[game_id]))
+
+
+@login_required
+@user_passes_test(superuser_required)
 def moderate_answers(request, game_id):
     game = get_object_or_404(Game, pk=game_id)
     # open type questions' answers which are not yet moderated
@@ -122,3 +139,13 @@ def mark_answer(request, game_id, answer_id):
     async_to_sync(channel_layer.group_send)(f'game_{game_id}', {'type': 'update_rating', 'ratings': ratings})
 
     return redirect(reverse('admin_panel:moderate_answers', args=[game_id]))
+
+
+@login_required
+@user_passes_test(superuser_required)
+def moderate_answers_question(request, game_id, question_id):
+    game = get_object_or_404(Game, pk=game_id)
+    question = get_object_or_404(Question, pk=question_id, round__game=game)
+    # show answers for this question (unmoderated first)
+    answers = Answer.objects.filter(question=question).select_related('question')
+    return render(request, 'admin_panel/moderate_answers_question.html', {'game': game, 'question': question, 'answers': answers})
