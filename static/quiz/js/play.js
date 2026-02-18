@@ -67,6 +67,7 @@
       optionsEl.classList.remove('hidden');
       (currentQuestion.options || []).forEach((opt, idx) => {
         const btn = document.createElement('button');
+        btn.type = 'button';
         btn.innerText = opt;
         btn.dataset.value = opt;
         btn.onclick = () => selectOption(btn);
@@ -89,6 +90,13 @@
     noQuestion.classList.add('hidden');
     questionBox.classList.remove('hidden');
     inputsEnabled = true;
+    // re-query controls (in case DOM changed) and re-enable them
+    const _submit = document.getElementById('submit-btn');
+    const _openAnswer = document.getElementById('open-answer');
+    if (_submit) { _submit.disabled = false; _submit.removeAttribute('disabled'); }
+    if (_openAnswer) { _openAnswer.disabled = false; }
+    // remove disabled/selected classes from previous options and enable them
+    Array.from(optionsEl.children).forEach(c => { c.classList.remove('disabled', 'selected'); c.disabled = false; });
 
     // start countdown
     startCountdown(currentQuestion.time || 30);
