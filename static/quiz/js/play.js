@@ -81,17 +81,28 @@
     if (currentQuestion.allow_bet) {
       // show strict bet controls: two buttons +1 and +2
       betArea.classList.remove('hidden');
-      // ensure we have a hidden/input to store selected bet value
-      let hidden = betInput;
+      // hide any existing numeric input rendered by template
+      const existingNumber = betArea.querySelector('input[type="number"]');
+      if (existingNumber) {
+        // hide the numeric input and its surrounding label if present
+        const lbl = existingNumber.closest('label');
+        if (lbl) lbl.style.display = 'none';
+        else existingNumber.style.display = 'none';
+      }
+
+      // ensure we have a hidden input to store selected bet value
+      let hidden = document.getElementById('bet-input-hidden');
       if (!hidden) {
         hidden = document.createElement('input');
         hidden.type = 'hidden';
-        hidden.id = 'bet-input';
+        hidden.id = 'bet-input-hidden';
         betArea.appendChild(hidden);
       }
       hidden.value = 0;
-      // render buttons
+
+      // remove previous rendered bet buttons (if any)
       betArea.querySelectorAll('.bet-btn')?.forEach(b=>b.remove());
+
       const btn1 = document.createElement('button');
       btn1.type = 'button'; btn1.className = 'bet-btn'; btn1.dataset.bet = '1'; btn1.innerText = '+1';
       const btn2 = document.createElement('button');
@@ -175,7 +186,9 @@
       if (!answer) { alert('Введите ответ'); return; }
     }
 
-    const bet = currentQuestion.allow_bet ? Number((betInput && betInput.value) ? betInput.value : 0) : null;
+    // read from our hidden input (fall back to legacy id if present)
+    const hiddenBet = document.getElementById('bet-input-hidden') || document.getElementById('bet-input');
+    const bet = currentQuestion.allow_bet ? Number((hiddenBet && hiddenBet.value) ? hiddenBet.value : 0) : null;
 
     const payload = {
       action: 'submit_answer',
