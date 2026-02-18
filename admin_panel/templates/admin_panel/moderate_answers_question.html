@@ -1,24 +1,11 @@
 {% load tz %}
 <!DOCTYPE html>
 <html lang="ru">
-          <td>
-            <form method="post" action="/admin/game/{{ game.id }}/mark_answer/{{ a.id }}/" style="display:inline">
-              {% csrf_token %}
-              <input type="hidden" name="action" value="correct">
-              <input type="hidden" name="next" value="{{ request.path }}">
-              <button type="submit">✔️</button>
-            </form>
-            <form method="post" action="/admin/game/{{ game.id }}/mark_answer/{{ a.id }}/" style="display:inline;margin-left:6px">
-              {% csrf_token %}
-              <input type="hidden" name="action" value="incorrect">
-              <input type="hidden" name="next" value="{{ request.path }}">
-              <button type="submit">✖️</button>
-            </form>
-          </td>
-      form.querySelector('input[name=action]').value = action;
-      form.submit();
-    }
-  </script>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Модерация ответов — {{ question.text|truncatechars:60 }}</title>
+  <style>body{font-family:Arial,Helvetica,sans-serif;margin:20px} table{width:100%;border-collapse:collapse} th,td{border:1px solid #eee;padding:8px;text-align:left} .correct{background:#e6ffe6} .incorrect{background:#ffe6e6}</style>
 </head>
 <body>
   <h1>Модерация ответов — вопрос: {{ question.text }}</h1>
@@ -36,13 +23,18 @@
           <td>{% if a.is_correct is None %}Не проверено{% elif a.is_correct %}Правильно{% else %}Неверно{% endif %}</td>
           <td>{{ a.answer_text }}</td>
           <td>
-            <form id="mark_{{ a.id }}" method="post" data-base="/admin/game/{{ game.id }}/mark_answer/__ID__/" action="" style="display:inline">
+            <form method="post" action="/admin/game/{{ game.id }}/mark_answer/{{ a.id }}/" style="display:inline">
               {% csrf_token %}
-              <input type="hidden" name="action" value="">
+              <input type="hidden" name="action" value="correct">
               <input type="hidden" name="next" value="{{ request.path }}">
+              <button type="submit">✔️</button>
             </form>
-            <button onclick="(function(){document.getElementById('mark_{{ a.id }}').action=document.getElementById('mark_{{ a.id }}').datasetBase.replace('__ID__','{{ a.id }}');document.getElementById('mark_{{ a.id }}').querySelector('input[name=action]').value='correct';document.getElementById('mark_{{ a.id }}').submit();})()">✔️</button>
-            <button onclick="(function(){document.getElementById('mark_{{ a.id }}').action=document.getElementById('mark_{{ a.id }}').datasetBase.replace('__ID__','{{ a.id }}');document.getElementById('mark_{{ a.id }}').querySelector('input[name=action]').value='incorrect';document.getElementById('mark_{{ a.id }}').submit();})()">✖️</button>
+            <form method="post" action="/admin/game/{{ game.id }}/mark_answer/{{ a.id }}/" style="display:inline;margin-left:6px">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="incorrect">
+              <input type="hidden" name="next" value="{{ request.path }}">
+              <button type="submit">✖️</button>
+            </form>
           </td>
         </tr>
       {% empty %}

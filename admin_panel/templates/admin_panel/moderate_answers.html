@@ -6,14 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Модерация ответов — {{ game.title }}</title>
   <style>body{font-family:Arial,Helvetica,sans-serif;margin:20px} table{width:100%;border-collapse:collapse} th,td{border:1px solid #eee;padding:8px;text-align:left}</style>
-  <script>
-    function mark(answerId, action){
-      const form = document.getElementById('mark_' + answerId);
-      form.action = form.datasetBase.replace('__ID__', answerId);
-      form.querySelector('input[name=action]').value = action;
-      form.submit();
-    }
-  </script>
 </head>
 <body>
   <h1>Модерация ответов для: {{ game.title }}</h1>
