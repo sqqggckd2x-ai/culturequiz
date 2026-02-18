@@ -25,11 +25,11 @@
     </thead>
     <tbody>
       {% for a in answers %}
-        <tr class="{% if a.is_correct %}correct{% elif a.is_correct == False %}incorrect{% endif %}">
+        <tr class="{% if a.is_correct %}correct{% elif a.is_correct is False %}incorrect{% endif %}">
           <td>{{ a.answer_text }}</td>
           <td>{% if a.team_name %}{{ a.team_name }}{% else %}{{ a.user_id }}{% endif %}</td>
           <td>{{ a.submitted_at|localtime }}</td>
-          <td>{% if a.is_correct == None %}Не проверено{% elif a.is_correct %}Правильно{% else %}Неверно{% endif %}</td>
+          <td>{% if a.is_correct is None %}Не проверено{% elif a.is_correct %}Правильно{% else %}Неверно{% endif %}</td>
           <td>
             <form id="mark_{{ a.id }}" method="post" data-base="{% url 'admin_panel:mark_answer' game.id '__ID__' %}" action="" style="display:inline">
               {% csrf_token %}
