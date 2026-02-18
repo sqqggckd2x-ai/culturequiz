@@ -107,8 +107,20 @@
       btn1.type = 'button'; btn1.className = 'bet-btn'; btn1.dataset.bet = '1'; btn1.innerText = '+1';
       const btn2 = document.createElement('button');
       btn2.type = 'button'; btn2.className = 'bet-btn'; btn2.dataset.bet = '2'; btn2.innerText = '+2';
-      btn1.onclick = () => { hidden.value = 1; btn1.classList.add('selected'); btn2.classList.remove('selected'); };
-      btn2.onclick = () => { hidden.value = 2; btn2.classList.add('selected'); btn1.classList.remove('selected'); };
+      btn1.addEventListener('click', () => {
+        hidden.value = 1;
+        btn1.classList.add('selected');
+        btn2.classList.remove('selected');
+        console.log('bet +1 selected');
+      });
+      btn2.addEventListener('click', () => {
+        hidden.value = 2;
+        btn2.classList.add('selected');
+        btn1.classList.remove('selected');
+        console.log('bet +2 selected');
+      });
+      btn1.style.cursor = 'pointer';
+      btn2.style.cursor = 'pointer';
       betArea.appendChild(btn1);
       betArea.appendChild(btn2);
     } else {
