@@ -16,6 +16,9 @@ class Game(models.Model):
     video_url = models.CharField('Видео (embed URL)', max_length=500, blank=True, null=True, help_text='VK video embed URL')
     created_at = models.DateTimeField('Дата создания', default=timezone.now)
     is_active = models.BooleanField('Активна', default=True)
+    # currently active question and whether accepting answers
+    active_question = models.ForeignKey('Question', on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    accepting_answers = models.BooleanField('Принимаются ответы', default=False)
     mode = models.CharField('Режим', max_length=20, choices=MODE_CHOICES, default=MODE_INDIVIDUAL)
 
     def __str__(self):

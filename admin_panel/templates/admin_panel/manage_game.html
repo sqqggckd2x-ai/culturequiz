@@ -42,7 +42,7 @@
     <h3>Рейтинг</h3>
     <ul>
       {% for r in ratings %}
-        <li>{{ r.participant.team_name or r.participant.session_key }} — {{ r.score }}</li>
+        <li>{{ r.participant.team_name|default:r.participant.session_key }} — {{ r.score }}</li>
       {% empty %}
         <li>Нет участников</li>
       {% endfor %}

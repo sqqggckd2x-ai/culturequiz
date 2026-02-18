@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-quizdb}
+      POSTGRES_USER: ${POSTGRES_USER:-quizuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-quizpass}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+
+  web:
+    image: ${IMAGE:-nailvolk/quiz_platform:latest}
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./staticfiles:/app/staticfiles
+
+  rtmp:
+    image: tiangolo/nginx-rtmp:latest
+    restart: unless-stopped
+    ports:
+      - "1935:1935"   # RTMP ingest
+      - "8080:8080"   # optional status/http
+    volumes:
+      - ./hls:/var/www/hls
+    depends_on:
+      - web
+
+volumes:
+  db_data:

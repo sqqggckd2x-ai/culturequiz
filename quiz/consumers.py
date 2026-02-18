@@ -1,16 +1,48 @@
 import json
-from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from channels.db import database_sync_to_async
-from .models import Question, Answer, Participant
+from .models import Question, Answer, Participant, Game
 
 
-class GameConsumer(AsyncWebsocketConsumer):
+class GameConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
         self.game_id = self.scope['url_route']['kwargs'].get('game_id')
         self.group_name = f'game_{self.game_id}'
 
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
+
+        # on new connection, if there is an active question and answers are accepted,
+        # send the current question to the connecting client so page reloads see it
+        @database_sync_to_async
+        def _get_state(gid):
+            try:
+                g = Game.objects.select_related('active_question').get(pk=gid)
+                return {'accepting': g.accepting_answers, 'question_id': g.active_question_id}
+            except Exception:
+                return {'accepting': False, 'question_id': None}
+
+        state = await _get_state(int(self.game_id)) if self.game_id else {'accepting': False, 'question_id': None}
+        if state.get('accepting') and state.get('question_id'):
+            @database_sync_to_async
+            def _load_question(qid):
+                try:
+                    q = Question.objects.get(pk=qid)
+                    return {
+                        'id': q.pk,
+                        'text': q.text,
+                        'type': q.type,
+                        'options': q.options or [],
+                        'time': getattr(q, 'time_limit', 30),
+                        'allow_bet': bool(q.allow_bet),
+                        'max_bet': getattr(q, 'max_bet', 10),
+                    }
+                except Exception:
+                    return None
+
+            qpayload = await _load_question(state.get('question_id'))
+            if qpayload:
+                await self.send_json({'type': 'show_question', 'question': qpayload})
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.group_name, self.channel_name)

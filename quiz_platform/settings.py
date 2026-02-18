@@ -18,6 +18,18 @@ DEBUG = get_env_var('DJANGO_DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = get_env_var('DJANGO_ALLOWED_HOSTS', '').split(',') if get_env_var('DJANGO_ALLOWED_HOSTS') else []
 
+# If running behind a reverse proxy (nginx) that terminates TLS, tell Django
+# to trust the X-Forwarded-Proto header so request.is_secure() works.
+# Configure trusted CSRF origins (must include scheme, e.g. https://quiz.nvolkv.ru)
+# and cookie/security flags via environment variables when deploying to prod.
+CSRF_TRUSTED_ORIGINS = [s.strip() for s in get_env_var('DJANGO_CSRF_TRUSTED_ORIGINS', 'https://quiz.nvolkv.ru').split(',') if s.strip()]
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Ensure secure cookies under HTTPS (can be overridden via env vars)
+CSRF_COOKIE_SECURE = get_env_var('DJANGO_CSRF_COOKIE_SECURE', 'True') == 'True'
+SESSION_COOKIE_SECURE = get_env_var('DJANGO_SESSION_COOKIE_SECURE', 'True') == 'True'
+
+
 INSTALLED_APPS = [
     'channels',
     'django.contrib.admin',

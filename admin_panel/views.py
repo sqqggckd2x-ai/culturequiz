@@ -57,6 +57,12 @@ def send_question(request, game_id, question_id):
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(f'game_{game_id}', payload)
 
+    # persist active question state on game so reconnecting clients can read it
+    game = Game.objects.get(pk=game_id)
+    game.active_question = question
+    game.accepting_answers = True
+    game.save()
+
     return redirect(reverse('admin_panel:manage_game', args=[game_id]))
 
 
@@ -66,6 +72,10 @@ def send_question(request, game_id, question_id):
 def stop_answers(request, game_id):
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(f'game_{game_id}', {'type': 'stop_answers'})
+    # persist state
+    game = Game.objects.get(pk=game_id)
+    game.accepting_answers = False
+    game.save()
     return redirect(reverse('admin_panel:manage_game', args=[game_id]))
 
 
