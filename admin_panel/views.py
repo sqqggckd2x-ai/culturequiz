@@ -154,3 +154,17 @@ def moderate_answers_question(request, game_id, question_id):
     # show answers for this question (unmoderated first)
     answers = Answer.objects.filter(question=question).select_related('question')
     return render(request, 'admin_panel/moderate_answers_question.html', {'game': game, 'question': question, 'answers': answers})
+
+
+@login_required
+@user_passes_test(superuser_required)
+def participants_rating(request, game_id):
+    game = get_object_or_404(Game, pk=game_id)
+    participants = list(game.participants.all())
+    ratings = []
+    for p in participants:
+        total = Answer.objects.filter(user_id=p.session_key, question__round__game=game, points_awarded__isnull=False).aggregate(total=models.Sum('points_awarded'))['total'] or 0
+        ratings.append({'participant': p, 'score': total})
+
+    ratings_sorted = sorted(ratings, key=lambda r: r['score'], reverse=True)
+    return render(request, 'admin_panel/ratings.html', {'game': game, 'ratings': ratings_sorted})

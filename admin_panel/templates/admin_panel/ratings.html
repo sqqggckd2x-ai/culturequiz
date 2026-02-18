@@ -1,0 +1,32 @@
+{% load tz %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Рейтинг участников — {{ game.title }}</title>
+  <style>body{font-family:Arial,Helvetica,sans-serif;margin:20px} table{width:100%;border-collapse:collapse} th,td{border:1px solid #eee;padding:8px;text-align:left} th{background:#f6f6f6}</style>
+</head>
+<body>
+  <h1>Рейтинг участников — {{ game.title }}</h1>
+  <a href="{% url 'admin_panel:manage_game' game.id %}">Назад к управлению</a>
+
+  <table>
+    <thead>
+      <tr><th>#</th><th>Участник</th><th>Счёт</th></tr>
+    </thead>
+    <tbody>
+      {% for r in ratings %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ r.participant.team_name|default:r.participant.session_key }}</td>
+          <td>{{ r.score }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="3">Нет участников</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+</body>
+</html>

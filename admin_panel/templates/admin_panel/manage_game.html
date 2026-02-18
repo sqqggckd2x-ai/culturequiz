@@ -45,7 +45,7 @@
   </div>
 
   <div class="ratings">
-    <h3>Рейтинг</h3>
+    <h3>Рейтинг — <a href="{% url 'admin_panel:ratings' game.id %}">полный рейтинг</a></h3>
     <ul>
       {% for r in ratings %}
         <li>{{ r.participant.team_name|default:r.participant.session_key }} — {{ r.score }}</li>
