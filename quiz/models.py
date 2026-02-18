@@ -103,6 +103,25 @@ class Answer(models.Model):
         return f"Ответ {self.user_id} на Q#{self.question_id}"
 
     def save(self, *args, **kwargs):
+        # Auto-evaluate choice answers when question.correct_answer exists
+        try:
+            q = self.question
+        except Exception:
+            q = None
+
+        if getattr(q, 'type', None) == Question.TYPE_CHOICE and getattr(q, 'correct_answer', None):
+            # Only auto-set is_correct when it's not explicitly set (allow moderator override later)
+            if self.is_correct is None:
+                try:
+                    # simple normalization: strip + lower
+                    if (self.answer_text or '').strip().lower() == (q.correct_answer or '').strip().lower():
+                        self.is_correct = True
+                    else:
+                        self.is_correct = False
+                except Exception:
+                    # fall back to leaving is_correct as-is
+                    pass
+
         # If is_correct is set and points_awarded not calculated yet, defer to util to compute
         is_set = self.is_correct is not None
         need_calc = self.points_awarded is None
@@ -144,3 +163,8 @@ def auto_mark_answers_on_correct_answer(sender, instance, created, **kwargs):
     for a in matches:
         a.is_correct = True
         a.save()  # Answer.save will call update_score if needed
+    # Mark remaining unmoderated answers for this question as incorrect
+    non_matches = qs.exclude(pk__in=matches.values_list('pk', flat=True))
+    for a in non_matches:
+        a.is_correct = False
+        a.save()
