@@ -97,6 +97,11 @@
     if (_openAnswer) { _openAnswer.disabled = false; }
     // remove disabled/selected classes from previous options and enable them
     Array.from(optionsEl.children).forEach(c => { c.classList.remove('disabled', 'selected'); c.disabled = false; });
+    // ensure submit handler is attached (rebind to be safe on mobile)
+    if (_submit) {
+      try { _submit.removeEventListener('click', handleSubmitClick); } catch(e) {}
+      _submit.addEventListener('click', handleSubmitClick);
+    }
 
     // start countdown
     startCountdown(currentQuestion.time || 30);
@@ -139,7 +144,8 @@
     countdownEl.innerText = '';
   }
 
-  submitBtn.addEventListener('click', () => {
+  // named submit handler so we can re-bind on mobile reliably
+  function handleSubmitClick() {
     if (!inputsEnabled || !currentQuestion) return;
 
     let answer = null;
@@ -162,10 +168,17 @@
       participant_id: participantId,
     };
 
-    ws.send(JSON.stringify(payload));
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(payload));
+    }
     // optionally disable until server confirms
     stopAnswers();
-  });
+  }
+
+  // attach initial handler
+  if (submitBtn) {
+    submitBtn.addEventListener('click', handleSubmitClick);
+  }
 
   // start
   connect();
