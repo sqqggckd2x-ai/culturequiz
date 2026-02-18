@@ -79,10 +79,27 @@
     }
 
     if (currentQuestion.allow_bet) {
+      // show strict bet controls: two buttons +1 and +2
       betArea.classList.remove('hidden');
-      const max = currentQuestion.max_bet || 10;
-      betInput.max = max;
-      maxBetEl.innerText = `/ max ${max}`;
+      // ensure we have a hidden/input to store selected bet value
+      let hidden = betInput;
+      if (!hidden) {
+        hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.id = 'bet-input';
+        betArea.appendChild(hidden);
+      }
+      hidden.value = 0;
+      // render buttons
+      betArea.querySelectorAll('.bet-btn')?.forEach(b=>b.remove());
+      const btn1 = document.createElement('button');
+      btn1.type = 'button'; btn1.className = 'bet-btn'; btn1.dataset.bet = '1'; btn1.innerText = '+1';
+      const btn2 = document.createElement('button');
+      btn2.type = 'button'; btn2.className = 'bet-btn'; btn2.dataset.bet = '2'; btn2.innerText = '+2';
+      btn1.onclick = () => { hidden.value = 1; btn1.classList.add('selected'); btn2.classList.remove('selected'); };
+      btn2.onclick = () => { hidden.value = 2; btn2.classList.add('selected'); btn1.classList.remove('selected'); };
+      betArea.appendChild(btn1);
+      betArea.appendChild(btn2);
     } else {
       betArea.classList.add('hidden');
     }
@@ -158,7 +175,7 @@
       if (!answer) { alert('Введите ответ'); return; }
     }
 
-    const bet = currentQuestion.allow_bet ? Number(betInput.value || 0) : null;
+    const bet = currentQuestion.allow_bet ? Number((betInput && betInput.value) ? betInput.value : 0) : null;
 
     const payload = {
       action: 'submit_answer',

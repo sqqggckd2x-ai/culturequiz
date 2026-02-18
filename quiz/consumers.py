@@ -133,11 +133,24 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         user_id = participant.session_key if participant else 'anon'
         team_name = participant.team_name if participant else None
 
+        # sanitize bet: only allow 1 or 2 as coefficients (0 means no bet)
+        if question.allow_bet:
+            try:
+                bval = int(bet) if bet is not None else 0
+            except Exception:
+                bval = 0
+            if bval not in (0, 1, 2):
+                # clamp to 0 if unexpected
+                bval = 0
+            bet_stored = bval
+        else:
+            bet_stored = None
+
         ans = Answer.objects.create(
             question=question,
             user_id=user_id,
             team_name=team_name,
             answer_text=answer_text or '',
-            bet_used=bet if bet is not None else None,
+            bet_used=bet_stored,
         )
         return ans.id
