@@ -27,7 +27,7 @@
       {% for a in answers %}
         <tr class="{% if a.is_correct %}correct{% elif a.is_correct == False %}incorrect{% endif %}">
           <td>{{ a.answer_text }}</td>
-          <td>{{ a.team_name or a.user_id }}</td>
+          <td>{% if a.team_name %}{{ a.team_name }}{% else %}{{ a.user_id }}{% endif %}</td>
           <td>{{ a.submitted_at|localtime }}</td>
           <td>{% if a.is_correct == None %}Не проверено{% elif a.is_correct %}Правильно{% else %}Неверно{% endif %}</td>
           <td>
