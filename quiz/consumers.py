@@ -19,12 +19,15 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             try:
                 g = Game.objects.select_related('active_question').get(pk=gid)
                 started = None
+                started_ts = None
                 try:
                     if g.active_question_started_at:
                         started = g.active_question_started_at.isoformat()
+                        started_ts = int(g.active_question_started_at.timestamp())
                 except Exception:
                     started = None
-                return {'accepting': g.accepting_answers, 'question_id': g.active_question_id, 'started_at': started}
+                    started_ts = None
+                return {'accepting': g.accepting_answers, 'question_id': g.active_question_id, 'started_at': started, 'started_at_ts': started_ts}
             except Exception:
                 return {'accepting': False, 'question_id': None}
 
@@ -37,11 +40,14 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                     # Try to fetch started_at from the game's active_question_started_at if set
                     g = q.round.game
                     started = None
+                    started_ts = None
                     try:
                         if g.active_question_started_at:
                             started = g.active_question_started_at.isoformat()
+                            started_ts = int(g.active_question_started_at.timestamp())
                     except Exception:
                         started = None
+                        started_ts = None
                     return {
                         'id': q.pk,
                         'text': q.text,
@@ -51,6 +57,7 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                         'allow_bet': bool(q.allow_bet),
                         'max_bet': getattr(q, 'max_bet', 10),
                         'started_at': started,
+                        'started_at_ts': started_ts,
                     }
                 except Exception:
                     return None

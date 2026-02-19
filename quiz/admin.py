@@ -234,6 +234,18 @@ class QuestionAdmin(admin.ModelAdmin):
         game.save()
 
         # build question payload including server start timestamp for sync
+        # include both ISO timestamp and numeric epoch seconds for robustness
+        started_iso = None
+        started_ts = None
+        try:
+            if game.active_question_started_at:
+                started_iso = game.active_question_started_at.isoformat()
+                # epoch seconds (int) in UTC
+                started_ts = int(game.active_question_started_at.timestamp())
+        except Exception:
+            started_iso = None
+            started_ts = None
+
         question_payload = {
             'id': q.pk,
             'text': q.text,
@@ -242,7 +254,8 @@ class QuestionAdmin(admin.ModelAdmin):
             'time': getattr(q, 'time_limit', 30),
             'allow_bet': bool(q.allow_bet),
             'max_bet': getattr(q, 'max_bet', 10),
-            'started_at': game.active_question_started_at.isoformat(),
+            'started_at': started_iso,
+            'started_at_ts': started_ts,
         }
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(

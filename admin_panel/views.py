@@ -168,3 +168,20 @@ def participants_rating(request, game_id):
 
     ratings_sorted = sorted(ratings, key=lambda r: r['score'], reverse=True)
     return render(request, 'admin_panel/ratings.html', {'game': game, 'ratings': ratings_sorted})
+
+
+def public_participants_rating(request, game_id):
+    """Public-facing rating view (no auth required).
+
+    Returns the same `ratings.html` template but without requiring admin login,
+    suitable for embedding in external streaming tools.
+    """
+    game = get_object_or_404(Game, pk=game_id)
+    participants = list(game.participants.all())
+    ratings = []
+    for p in participants:
+        total = Answer.objects.filter(user_id=p.session_key, question__round__game=game, points_awarded__isnull=False).aggregate(total=models.Sum('points_awarded'))['total'] or 0
+        ratings.append({'participant': p, 'score': total})
+
+    ratings_sorted = sorted(ratings, key=lambda r: r['score'], reverse=True)
+    return render(request, 'admin_panel/ratings.html', {'game': game, 'ratings': ratings_sorted, 'public': True})
