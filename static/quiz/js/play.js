@@ -188,7 +188,11 @@
 
   // named submit handler so we can re-bind on mobile reliably
   function handleSubmitClick() {
-    if (!inputsEnabled || !currentQuestion) return;
+    if (!currentQuestion) return;
+    if (!inputsEnabled) {
+      console.warn('inputs disabled, forcing submit for debug');
+      inputsEnabled = true;
+    }
 
     let answer = null;
     if (currentQuestion.type === 'choice') {
@@ -211,12 +215,19 @@
       bet: bet,
       participant_id: participantId,
     };
-
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify(payload));
+    console.log('sending payload', payload, 'wsState=', ws && ws.readyState);
+    try {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(payload));
+        console.log('payload sent');
+      } else {
+        console.warn('WebSocket not open; cannot send');
+      }
+    } catch (err) {
+      console.error('send error', err);
     }
-    // optionally disable until server confirms
-    stopAnswers();
+    // temporarily re-enable/disable UI: allow disabling after send
+    try { stopAnswers(); } catch(e) { console.warn('stopAnswers failed', e); }
   }
 
   // attach initial handler
