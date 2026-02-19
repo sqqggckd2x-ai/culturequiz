@@ -6,7 +6,9 @@
   const statusEl = document.getElementById('ws-status');
   const questionsContainer = document.getElementById('questions-container');
   const noQuestion = document.getElementById('no-question');
-  const statusElWs = document.getElementById('ws-status');
+  // safe references for elements that may be absent after template changes
+  const countdownEl = document.getElementById('countdown');
+  const optionsEl = document.getElementById('options');
 
   let ws = null;
   let countdownTimer = null;
