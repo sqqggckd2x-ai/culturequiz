@@ -12,10 +12,12 @@
     .play-row{display:flex;gap:18px;align-items:flex-start;justify-content:center}
     .play-left{flex:0 0 720px;max-width:72vw}
     .play-right{flex:1;min-width:320px;max-width:40vw}
-    .video-wrap{background:#000;padding-top:56.25%;position:relative}
-    .video-wrap iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0}
+    /* Make the video area full-bleed (full window width) while keeping other content centered */
+    .video-wrap{background:#000;position:relative;left:50%;right:50%;margin-left:-50vw;margin-right:-50vw;width:100vw;max-width:100%}
+    /* Use modern aspect-ratio when available and fall back to height rules on small screens */
+    .video-wrap iframe{width:100% !important;height:auto !important;border:0;display:block;aspect-ratio:16/9;max-height:80vh}
     .video-wrap .video-overlay{position:absolute;top:0;left:0;width:100%;height:100%;display:none;z-index:2;background:transparent;cursor:default}
-    .video-wrap{min-height:180px}
+    .video-wrap{min-height:0}
     .answer-area{position:relative;z-index:5;background:#fff;padding:12px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.08)}
     .video-wrap{z-index:0}
     .question-text{font-size:18px;margin-bottom:8px}
