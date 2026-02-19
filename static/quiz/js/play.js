@@ -56,6 +56,8 @@
   }
 
   function showQuestion(msg) {
+    // disable iframe click handling so embed doesn't steal clicks
+    setIframePointer(false);
     currentQuestion = msg.question || msg;
     // expected fields: id, text, type, options (array), time (seconds), allow_bet, max_bet
     questionText.innerText = currentQuestion.text || '';
@@ -151,6 +153,15 @@
     Array.from(optionsEl.children).forEach(c => c.classList.add('disabled'));
     openAnswer.disabled = true;
     clearCountdown();
+    // re-enable iframe interactions when answers are stopped
+    setIframePointer(true);
+  }
+
+  function setIframePointer(enable) {
+    try {
+      const iframe = document.querySelector('.video-wrap iframe');
+      if (iframe) iframe.style.pointerEvents = enable ? 'auto' : 'none';
+    } catch (e) { console.warn('iframe pointer control failed', e); }
   }
 
   function startCountdown(seconds) {
