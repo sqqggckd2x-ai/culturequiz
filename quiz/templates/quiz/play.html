@@ -12,12 +12,11 @@
     .play-row{display:flex;gap:18px;align-items:flex-start;justify-content:center}
     .play-left{flex:0 0 720px;max-width:72vw}
     .play-right{flex:1;min-width:320px;max-width:40vw}
-    /* Make the video area full-bleed (full window width) while keeping other content centered */
-    .video-wrap{background:#000;position:relative;left:50%;right:50%;margin-left:-50vw;margin-right:-50vw;width:100vw;max-width:100%}
-    /* Use modern aspect-ratio when available and fall back to height rules on small screens */
-    .video-wrap iframe{width:100% !important;height:auto !important;border:0;display:block;aspect-ratio:16/9;max-height:80vh}
+    /* Default video container: keep aspect ratio and stay inside layout on desktop */
+    .video-wrap{background:#000;padding-top:56.25%;position:relative;max-width:100%}
+    .video-wrap iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0}
     .video-wrap .video-overlay{position:absolute;top:0;left:0;width:100%;height:100%;display:none;z-index:2;background:transparent;cursor:default}
-    .video-wrap{min-height:0}
+    .video-wrap{min-height:180px}
     .answer-area{position:relative;z-index:5;background:#fff;padding:12px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.08)}
     .video-wrap{z-index:0}
     .question-text{font-size:18px;margin-bottom:8px}
@@ -45,10 +44,10 @@
       .video-wrap{padding-top:0;height:220px}
       .video-wrap iframe{position:relative;height:100%;width:100%}
     }
-    /* ensure portrait on larger phones also shows video */
-    @media (orientation:portrait) and (max-width:820px){
-      .video-wrap{padding-top:0;height:40vh;min-height:200px}
-      .video-wrap iframe{position:relative;height:100%;width:100%}
+    /* For small screens (phones/tablets) make the video full-bleed and responsive */
+    @media (max-width:820px){
+      .video-wrap{position:relative;left:50%;right:50%;margin-left:-50vw;margin-right:-50vw;width:100vw;padding-top:0}
+      .video-wrap iframe{position:relative;width:100% !important;height:auto !important;border:0;display:block;aspect-ratio:16/9;max-height:80vh}
     }
     .bet-checkbox{margin-right:8px}
   </style>
