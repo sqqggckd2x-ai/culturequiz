@@ -43,9 +43,14 @@
       <h1>{{ game.title }}</h1>
 
       <div class="video-wrap" id="video">
-        <!-- Use per-game embed URL if provided, otherwise placeholder -->
+        <!-- Use per-game embed HTML or URL if provided. If admin pasted full <iframe> markup,
+             render it raw (safe). Otherwise treat value as a src URL. -->
         {% if game.video_url %}
-          <iframe src="{{ game.video_url }}" allowfullscreen title="Видео"></iframe>
+          {% if '<iframe' in game.video_url %}
+            {{ game.video_url|safe }}
+          {% else %}
+            <iframe src="{{ game.video_url }}" allowfullscreen title="Видео"></iframe>
+          {% endif %}
         {% else %}
           <iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" allowfullscreen title="Видео"></iframe>
         {% endif %}
