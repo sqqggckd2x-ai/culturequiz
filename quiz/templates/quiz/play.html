@@ -98,5 +98,40 @@
     };
   </script>
   <script src="{% static 'quiz/js/play.js' %}"></script>
+  <script>
+    // Normalize any pasted/embedded iframe attributes so embedded players behave responsively
+    (function(){
+      function normalizeVideo(){
+        var wrap = document.getElementById('video');
+        if(!wrap) return;
+        var el = wrap.querySelector('iframe,embed,object,video');
+        if(!el) return;
+        // remove inline width/height/style attributes that may force large black area
+        try{
+          el.removeAttribute('width');
+          el.removeAttribute('height');
+          el.removeAttribute('style');
+        }catch(e){}
+        // force responsive sizing
+        el.style.width = '100%';
+        el.style.height = '100%';
+        el.style.display = 'block';
+        el.style.maxHeight = '80vh';
+
+        // ensure wrapper has a sensible height on small screens
+        function setWrapHeight(){
+          var vw = window.innerWidth;
+          var vh = window.innerHeight;
+          var h = Math.min(vh * 0.8, vw * 9 / 16);
+          wrap.style.paddingTop = '0';
+          wrap.style.height = Math.round(h) + 'px';
+          wrap.style.overflow = 'hidden';
+        }
+        setWrapHeight();
+        window.addEventListener('resize', setWrapHeight);
+      }
+      if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', normalizeVideo); else normalizeVideo();
+    })();
+  </script>
 </body>
 </html>
