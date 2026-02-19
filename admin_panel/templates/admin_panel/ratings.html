@@ -9,7 +9,9 @@
 </head>
 <body>
   <h1>Рейтинг участников — {{ game.title }}</h1>
-  <a href="{% url 'admin_panel:manage_game' game.id %}">Назад к управлению</a>
+  {% if not public %}
+    <a href="{% url 'admin_panel:manage_game' game.id %}">Назад к управлению</a>
+  {% endif %}
 
   <table>
     <thead>
