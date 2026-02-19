@@ -234,9 +234,16 @@
 
   function setIframePointer(enable) {
     try {
-      const iframe = document.querySelector('.video-wrap iframe');
-      if (iframe) iframe.style.pointerEvents = enable ? 'auto' : 'none';
-    } catch (e) { console.warn('iframe pointer control failed', e); }
+      // Use a transparent overlay to block clicks instead of modifying iframe pointer-events.
+      const overlay = document.getElementById('video-overlay');
+      if (overlay) {
+        overlay.style.display = enable ? 'none' : 'block';
+      } else {
+        // fallback to iframe style if overlay missing
+        const iframe = document.querySelector('.video-wrap iframe');
+        if (iframe) iframe.style.pointerEvents = enable ? 'auto' : 'none';
+      }
+    } catch (e) { console.warn('video overlay control failed', e); }
   }
 
   function startCountdown(seconds) {
