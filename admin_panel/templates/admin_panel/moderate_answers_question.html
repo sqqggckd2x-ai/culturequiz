@@ -13,7 +13,7 @@
 
   <table>
     <thead>
-      <tr><th>Участник</th><th>Время</th><th>Статус</th><th>Ответ</th><th>Действия</th></tr>
+      <tr><th>Участник</th><th>Время</th><th>Статус</th><th>Ставка</th><th>Ответ</th><th>Действия</th></tr>
     </thead>
     <tbody>
       {% for a in answers %}
@@ -21,6 +21,7 @@
           <td>{% if a.team_name %}{{ a.team_name }}{% else %}{{ a.user_id }}{% endif %}</td>
           <td>{{ a.submitted_at|localtime }}</td>
           <td>{% if a.is_correct is None %}Не проверено{% elif a.is_correct %}Правильно{% else %}Неверно{% endif %}</td>
+          <td>{% if a.bet_used %}+{{ a.bet_used }}{% else %}-{% endif %}</td>
           <td>{{ a.answer_text }}</td>
           <td>
             <form method="post" action="/admin/game/{{ game.id }}/mark_answer/{{ a.id }}/" style="display:inline">
