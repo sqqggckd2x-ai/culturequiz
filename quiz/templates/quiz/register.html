@@ -19,8 +19,14 @@
         <input type="text" name="team_name" required maxlength="255">
       </label>
     {% else %}
-      <label>Ваше имя (необязательно):<br>
-        <input type="text" name="player_name" maxlength="255" placeholder="Оставьте пустым для автогенерации">
+      <label>Фамилия (обязательно):<br>
+        <input type="text" name="last_name" required maxlength="150">
+      </label>
+      <label>Имя (обязательно):<br>
+        <input type="text" name="first_name" required maxlength="150">
+      </label>
+      <label>Отчество (обязательно):<br>
+        <input type="text" name="middle_name" required maxlength="150">
       </label>
     {% endif %}
     <div style="margin-top:10px">

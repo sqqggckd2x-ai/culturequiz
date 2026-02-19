@@ -77,6 +77,9 @@ class Participant(models.Model):
     session_key = models.CharField('Ключ сессии', max_length=255)
     game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name='participants', verbose_name='Игра')
     team_name = models.CharField('Название команды / имя', max_length=255, blank=True, null=True)
+    last_name = models.CharField('Фамилия', max_length=150, blank=True, null=True)
+    first_name = models.CharField('Имя', max_length=150, blank=True, null=True)
+    middle_name = models.CharField('Отчество', max_length=150, blank=True, null=True)
     registered_at = models.DateTimeField('Время регистрации', default=timezone.now)
     total_score = models.IntegerField('Всего очков', default=0)
 
@@ -86,7 +89,18 @@ class Participant(models.Model):
         ordering = ['-total_score']
 
     def __str__(self):
-        return f"{self.team_name or self.session_key} ({self.game.title})"
+        if self.team_name:
+            return f"{self.team_name} ({self.game.title})"
+        # fallback to composed name if available
+        parts = [p for p in [self.last_name, self.first_name, self.middle_name] if p]
+        if parts:
+            return f"{' '.join(parts)} ({self.game.title})"
+        return f"{self.session_key} ({self.game.title})"
+
+    @property
+    def full_name(self):
+        parts = [p for p in [self.last_name, self.first_name, self.middle_name] if p]
+        return ' '.join(parts) if parts else (self.team_name or '')
 
 
 class Answer(models.Model):

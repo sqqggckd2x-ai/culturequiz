@@ -52,11 +52,14 @@ def register_for_game(request: HttpRequest, game_id: int):
                 return render(request, 'quiz/register.html', {'game': game, 'error': 'Team name is required for team games.'})
             participant = Participant.objects.create(session_key=session_key, game=game, team_name=team_name)
         else:
-            player_name = request.POST.get('player_name', '').strip()
-            if not player_name:
-                # generate a short name
-                player_name = f'Player-{uuid.uuid4().hex[:8]}'
-            participant = Participant.objects.create(session_key=session_key, game=game, team_name=player_name)
+            # require last, first, middle name for registration
+            last = request.POST.get('last_name', '').strip()
+            first = request.POST.get('first_name', '').strip()
+            middle = request.POST.get('middle_name', '').strip()
+            if not (last and first and middle):
+                return render(request, 'quiz/register.html', {'game': game, 'error': 'Фамилия, имя и отчество обязательны для регистрации.'})
+            full = f"{last} {first} {middle}"
+            participant = Participant.objects.create(session_key=session_key, game=game, team_name=full, last_name=last, first_name=first, middle_name=middle)
 
         # store participant id in session for convenience
         request.session['participant_id'] = participant.id
@@ -88,7 +91,16 @@ def ratings(request, game_id: int):
     participants = game.participants.all()
     data = []
     for p in participants:
-        data.append({'participant_id': p.id, 'session_key': p.session_key, 'team_name': p.team_name, 'score': p.total_score})
+        data.append({
+            'participant_id': p.id,
+            'session_key': p.session_key,
+            'team_name': p.team_name,
+            'last_name': p.last_name,
+            'first_name': p.first_name,
+            'middle_name': p.middle_name,
+            'full_name': p.full_name,
+            'score': p.total_score,
+        })
     # sort desc
     data = sorted(data, key=lambda x: x['score'], reverse=True)
     return JsonResponse({'ratings': data})

@@ -17,9 +17,13 @@
     <h1>{{ game.title }}</h1>
     <div class="container">
                 <div>
-                        <!-- Use per-game embed URL if provided, otherwise placeholder -->
+                        <!-- Use per-game embed HTML if admin pasted full iframe, otherwise use URL or placeholder -->
                         {% if game.video_url %}
-                            <iframe src="{{ game.video_url }}" title="Видео"></iframe>
+                            {% if '<iframe' in game.video_url %}
+                                {{ game.video_url|safe }}
+                            {% else %}
+                                <iframe src="{{ game.video_url }}" title="Видео"></iframe>
+                            {% endif %}
                         {% else %}
                             <iframe src="about:blank" title="Video placeholder">Ваш браузер не поддерживает iframe.</iframe>
                         {% endif %}
