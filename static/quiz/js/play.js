@@ -77,7 +77,19 @@
         const inp=document.createElement('input'); inp.type='text'; inp.style.width='100%'; inp.className='open-answer-input'; container.appendChild(inp);
       }
       // bet hidden
-      if (q.allow_bet) { const bh=document.createElement('input'); bh.type='hidden'; bh.className='bet-hidden'; bh.value=0; container.appendChild(bh); const br=document.createElement('div'); br.style.display='inline-block'; br.style.marginLeft='8px'; const b1=document.createElement('button'); b1.type='button'; b1.innerText='+1'; b1.addEventListener('click',()=>{bh.value=1}); const b2=document.createElement('button'); b2.type='button'; b2.innerText='+2'; b2.addEventListener('click',()=>{bh.value=2}); br.appendChild(b1); br.appendChild(b2); container.appendChild(br); }
+      if (q.allow_bet) {
+        const bh = document.createElement('input'); bh.type='hidden'; bh.className='bet-hidden'; bh.value = 0; container.appendChild(bh);
+        const br = document.createElement('div'); br.style.display='inline-block'; br.style.marginLeft='8px';
+        // create checkboxes for +1 and +2 but enforce single selection
+        const cb1 = document.createElement('input'); cb1.type='checkbox'; cb1.className='bet-checkbox'; cb1.dataset.value = '1'; cb1.id = 'bet1_' + q.id;
+        const lb1 = document.createElement('label'); lb1.htmlFor = cb1.id; lb1.innerText = '+1'; lb1.style.marginRight = '8px';
+        const cb2 = document.createElement('input'); cb2.type='checkbox'; cb2.className='bet-checkbox'; cb2.dataset.value = '2'; cb2.id = 'bet2_' + q.id;
+        const lb2 = document.createElement('label'); lb2.htmlFor = cb2.id; lb2.innerText = '+2'; lb2.style.marginRight = '8px';
+        cb1.addEventListener('change', () => { if (cb1.checked) { cb2.checked = false; bh.value = 1; } else { bh.value = 0; } });
+        cb2.addEventListener('change', () => { if (cb2.checked) { cb1.checked = false; bh.value = 2; } else { bh.value = 0; } });
+        br.appendChild(cb1); br.appendChild(lb1); br.appendChild(cb2); br.appendChild(lb2);
+        container.appendChild(br);
+      }
       row.appendChild(container);
       questionsContainer.appendChild(row);
     });
@@ -170,11 +182,13 @@
     if (q.allow_bet) {
       const betWrap = document.createElement('div'); betWrap.className = 'bet';
       const hidden = document.createElement('input'); hidden.type = 'hidden'; hidden.className = 'bet-hidden'; hidden.value = 0;
-      const b1 = document.createElement('button'); b1.type='button'; b1.innerText='+1'; b1.className='bet-btn'; b1.style.cursor='pointer';
-      const b2 = document.createElement('button'); b2.type='button'; b2.innerText='+2'; b2.className='bet-btn'; b2.style.cursor='pointer';
-      b1.addEventListener('click',(e)=>{ e.stopPropagation(); hidden.value=1; b1.classList.add('selected'); b2.classList.remove('selected'); });
-      b2.addEventListener('click',(e)=>{ e.stopPropagation(); hidden.value=2; b2.classList.add('selected'); b1.classList.remove('selected'); });
-      betWrap.appendChild(b1); betWrap.appendChild(b2); betWrap.appendChild(hidden);
+      const cb1 = document.createElement('input'); cb1.type = 'checkbox'; cb1.className = 'bet-checkbox'; cb1.dataset.value = '1'; cb1.id = 'bet_q1_' + q.id;
+      const lb1 = document.createElement('label'); lb1.htmlFor = cb1.id; lb1.innerText = '+1'; lb1.style.marginRight = '8px';
+      const cb2 = document.createElement('input'); cb2.type = 'checkbox'; cb2.className = 'bet-checkbox'; cb2.dataset.value = '2'; cb2.id = 'bet_q2_' + q.id;
+      const lb2 = document.createElement('label'); lb2.htmlFor = cb2.id; lb2.innerText = '+2'; lb2.style.marginRight = '8px';
+      cb1.addEventListener('change', (e) => { e.stopPropagation(); if (cb1.checked) { cb2.checked = false; hidden.value = 1; } else { hidden.value = 0; } });
+      cb2.addEventListener('change', (e) => { e.stopPropagation(); if (cb2.checked) { cb1.checked = false; hidden.value = 2; } else { hidden.value = 0; } });
+      betWrap.appendChild(cb1); betWrap.appendChild(lb1); betWrap.appendChild(cb2); betWrap.appendChild(lb2); betWrap.appendChild(hidden);
       controls.appendChild(betWrap);
     }
 

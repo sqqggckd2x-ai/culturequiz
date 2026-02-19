@@ -38,6 +38,12 @@
       .play-left{flex:0 0 55%}
       .play-right{flex:1;min-width:40%}
     }
+    /* Ensure iframe remains visible on narrow portrait screens */
+    @media (max-width:480px){
+      .video-wrap{padding-top:0;height:220px}
+      .video-wrap iframe{position:relative;height:100%;width:100%}
+    }
+    .bet-checkbox{margin-right:8px}
   </style>
 </head>
 <body>
