@@ -5,7 +5,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Регистрация — {{ game.title }}</title>
-  <style>body{font-family:Arial,Helvetica,sans-serif;margin:20px;}form{max-width:480px}</style>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;margin:20px}
+    form{max-width:480px}
+    form label{display:block;margin-bottom:8px}
+    form input[type="text"]{width:100%;box-sizing:border-box;padding:6px;margin-top:4px;margin-bottom:12px}
+    form button{margin-top:6px}
+  </style>
 </head>
 <body>
   <h1>Регистрация на игру: {{ game.title }}</h1>
