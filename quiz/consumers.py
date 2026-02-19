@@ -1,7 +1,7 @@
 import json
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from channels.db import database_sync_to_async
-from .models import Question, Answer, Participant, Game
+from .models import Question, Answer, Participant, Game, Round
 
 
 class GameConsumer(AsyncJsonWebsocketConsumer):
@@ -20,6 +20,9 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 g = Game.objects.select_related('active_question').get(pk=gid)
                 started = None
                 started_ts = None
+                active_round_id = None
+                active_round_started = None
+                active_round_started_ts = None
                 try:
                     if g.active_question_started_at:
                         started = g.active_question_started_at.isoformat()
@@ -27,7 +30,23 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 except Exception:
                     started = None
                     started_ts = None
-                return {'accepting': g.accepting_answers, 'question_id': g.active_question_id, 'started_at': started, 'started_at_ts': started_ts}
+                try:
+                    if g.active_round:
+                        active_round_id = g.active_round_id
+                        if g.active_round_started_at:
+                            active_round_started = g.active_round_started_at.isoformat()
+                            active_round_started_ts = int(g.active_round_started_at.timestamp())
+                except Exception:
+                    active_round_id = None
+                return {
+                    'accepting': g.accepting_answers,
+                    'question_id': g.active_question_id,
+                    'started_at': started,
+                    'started_at_ts': started_ts,
+                    'active_round_id': active_round_id,
+                    'active_round_started': active_round_started,
+                    'active_round_started_ts': active_round_started_ts,
+                }
             except Exception:
                 return {'accepting': False, 'question_id': None}
 
@@ -65,6 +84,45 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             qpayload = await _load_question(state.get('question_id'))
             if qpayload:
                 await self.send_json({'type': 'show_question', 'question': qpayload})
+        # If there's an active round, load and send it (including saved answers for this participant)
+        if state.get('accepting') and state.get('active_round_id'):
+            @database_sync_to_async
+            def _load_round(rid, user_session):
+                try:
+                    r = Round.objects.get(pk=rid)
+                    questions = []
+                    for q in r.questions.all():
+                        questions.append({
+                            'id': q.pk,
+                            'text': q.text,
+                            'type': q.type,
+                            'options': q.options or [],
+                            'allow_bet': bool(q.allow_bet),
+                            'points': q.points,
+                        })
+                    # load saved answers for this user in this round
+                    saved = {}
+                    if user_session:
+                        ans_qs = Answer.objects.filter(user_id=user_session, question__round=r)
+                        for a in ans_qs:
+                            saved[a.question_id] = {'answer_text': a.answer_text, 'bet_used': a.bet_used}
+                    started = None
+                    started_ts = None
+                    try:
+                        g = r.game
+                        if g.active_round_started_at:
+                            started = g.active_round_started_at.isoformat()
+                            started_ts = int(g.active_round_started_at.timestamp())
+                    except Exception:
+                        started = None
+                        started_ts = None
+                    return {'id': r.pk, 'title': r.title, 'questions': questions, 'saved_answers': saved, 'started_at': started, 'started_at_ts': started_ts}
+                except Exception:
+                    return None
+
+            round_payload = await _load_round(state.get('active_round_id'), getattr(self, 'participant_id', None))
+            if round_payload:
+                await self.send_json({'type': 'show_round', 'round': round_payload})
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
@@ -119,6 +177,20 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                     'answer_id': saved_id,
                 }
             )
+        elif action == 'save_round_answers':
+            # payload should contain list of {question_id, answer, bet}
+            answers = content.get('answers') or []
+            participant_id = content.get('participant_id') or getattr(self, 'participant_id', None)
+            saved_ids = []
+            for item in answers:
+                qid = item.get('question_id')
+                ans_text = item.get('answer')
+                bet = item.get('bet')
+                sid = await self._save_or_update_answer(participant_id, qid, ans_text, bet)
+                if sid:
+                    saved_ids.append(sid)
+            # notify group that this participant saved (so admin can count)
+            await self.channel_layer.group_send(self.group_name, {'type': 'player_submit', 'participant_id': participant_id, 'saved_ids': saved_ids})
 
     # Handlers for messages sent to the group by server/admin
     async def show_question(self, event):

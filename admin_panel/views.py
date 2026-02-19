@@ -7,7 +7,7 @@ from django.db import models
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
-from quiz.models import Game, Question, Answer, Participant
+from quiz.models import Game, Question, Answer, Participant, Round
 
 
 def superuser_required(user):
@@ -59,8 +59,55 @@ def send_question(request, game_id, question_id):
 
     # persist active question state on game so reconnecting clients can read it
     game = Game.objects.get(pk=game_id)
+    game = Game.objects.get(pk=game_id)
     game.active_question = question
+    game.active_round = question.round
     game.accepting_answers = True
+    from django.utils import timezone
+    game.active_round_started_at = timezone.now()
+    game.save()
+
+    return redirect(reverse('admin_panel:manage_game', args=[game_id]))
+
+
+@login_required
+@user_passes_test(superuser_required)
+@require_POST
+def send_round(request, game_id, round_id):
+    # send all questions of a round to players as a single 'round' payload
+    rnd = get_object_or_404(Round, pk=round_id, game__id=game_id)
+    qs = list(rnd.questions.all())
+    questions_payload = []
+    for q in qs:
+        questions_payload.append({
+            'id': q.pk,
+            'text': q.text,
+            'type': q.type,
+            'options': q.options or [],
+            'allow_bet': bool(q.allow_bet),
+            'max_bet': getattr(q, 'max_bet', 10),
+            'points': q.points,
+        })
+
+    payload = {
+        'type': 'show_round',
+        'round': {
+            'id': rnd.pk,
+            'title': rnd.title,
+            'questions': questions_payload,
+        },
+        'time': int(request.POST.get('duration', 30)),
+    }
+
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(f'game_{game_id}', payload)
+
+    # persist active round state on game so reconnecting clients can read it
+    game = Game.objects.get(pk=game_id)
+    game.active_round = rnd
+    game.accepting_answers = True
+    from django.utils import timezone
+    game.active_round_started_at = timezone.now()
     game.save()
 
     return redirect(reverse('admin_panel:manage_game', args=[game_id]))
@@ -75,6 +122,11 @@ def stop_answers(request, game_id):
     # persist state
     game = Game.objects.get(pk=game_id)
     game.accepting_answers = False
+    # clear active round/question and timestamps
+    game.active_round = None
+    game.active_question = None
+    game.active_round_started_at = None
+    game.active_question_started_at = None
     game.save()
     return redirect(reverse('admin_panel:manage_game', args=[game_id]))
 
@@ -154,6 +206,15 @@ def moderate_answers_question(request, game_id, question_id):
     # show answers for this question (unmoderated first)
     answers = Answer.objects.filter(question=question).select_related('question')
     return render(request, 'admin_panel/moderate_answers_question.html', {'game': game, 'question': question, 'answers': answers})
+
+
+@login_required
+@user_passes_test(superuser_required)
+def moderate_round(request, game_id, round_id):
+    game = get_object_or_404(Game, pk=game_id)
+    rnd = get_object_or_404(Round, pk=round_id, game=game)
+    questions = rnd.questions.all()
+    return render(request, 'admin_panel/moderate_round.html', {'game': game, 'round': rnd, 'questions': questions})
 
 
 @login_required

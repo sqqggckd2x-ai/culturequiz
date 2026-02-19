@@ -42,11 +42,84 @@
   function handleMessage(msg) {
     if (msg.type === 'show_question') {
       showQuestion(msg);
+    } else if (msg.type === 'show_round') {
+      showRound(msg.round);
     } else if (msg.type === 'stop_answers') {
       stopAnswers();
     } else if (msg.type === 'player_submit') {
       // optionally show who submitted
       console.log('player_submit', msg);
+    }
+  }
+
+  function showRound(round) {
+    // render whole answer sheet for the round
+    if (!round) return;
+    // clear any existing
+    activeQuestions = {};
+    questionsContainer.innerHTML = '';
+    noQuestion.classList.add('hidden');
+    // title
+    const header = document.createElement('h3'); header.innerText = 'Раунд: ' + (round.title || '');
+    questionsContainer.appendChild(header);
+
+    (round.questions || []).forEach((q, idx) => {
+      activeQuestions[q.id] = q;
+      const row = document.createElement('div'); row.className = 'sheet-row'; row.style.marginBottom='8px';
+      const label = document.createElement('div'); label.innerText = (idx+1) + '.'; label.style.display='inline-block'; label.style.width='24px';
+      row.appendChild(label);
+      const container = document.createElement('div'); container.style.display='inline-block'; container.style.verticalAlign='top'; container.style.width='80%';
+      if (q.type === 'choice') {
+        const opts = document.createElement('div'); opts.className='options';
+        (q.options || []).forEach(opt => { const b=document.createElement('button'); b.type='button'; b.innerText=opt; b.dataset.value=opt; b.style.marginRight='6px'; b.addEventListener('click', ()=>{ Array.from(opts.children).forEach(c=>c.classList.remove('selected')); b.classList.add('selected'); }); opts.appendChild(b); });
+        container.appendChild(opts);
+      } else {
+        const inp=document.createElement('input'); inp.type='text'; inp.style.width='100%'; inp.className='open-answer-input'; container.appendChild(inp);
+      }
+      // bet hidden
+      if (q.allow_bet) { const bh=document.createElement('input'); bh.type='hidden'; bh.className='bet-hidden'; bh.value=0; container.appendChild(bh); const br=document.createElement('div'); br.style.display='inline-block'; br.style.marginLeft='8px'; const b1=document.createElement('button'); b1.type='button'; b1.innerText='+1'; b1.addEventListener('click',()=>{bh.value=1}); const b2=document.createElement('button'); b2.type='button'; b2.innerText='+2'; b2.addEventListener('click',()=>{bh.value=2}); br.appendChild(b1); br.appendChild(b2); container.appendChild(br); }
+      row.appendChild(container);
+      questionsContainer.appendChild(row);
+    });
+
+    // Save all button
+    const saveAllWrap = document.createElement('div'); saveAllWrap.style.marginTop='12px'; const saveAllBtn=document.createElement('button'); saveAllBtn.type='button'; saveAllBtn.innerText='Сохранить ответы'; saveAllBtn.style.padding='10px 20px'; saveAllBtn.addEventListener('click', ()=>{
+      // collect all answers
+      const answers = [];
+      (round.questions || []).forEach(q => {
+        const card = questionsContainer.querySelector('[data-qid="' + q.id + '"]');
+      });
+      // simplified collection: find rows in order
+      const rows = questionsContainer.querySelectorAll('.sheet-row');
+      (round.questions || []).forEach((q, idx) => {
+        const row = rows[idx];
+        const open = row.querySelector('.open-answer-input');
+        const sel = row.querySelector('.options button.selected');
+        const betHidden = row.querySelector('.bet-hidden');
+        const answer = sel ? sel.dataset.value : (open ? open.value.trim() : '');
+        const bet = betHidden ? Number(betHidden.value || 0) : 0;
+        answers.push({question_id: q.id, answer: answer, bet: bet});
+      });
+      const payload = {action: 'save_round_answers', answers: answers, participant_id: participantId};
+      try { if (ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify(payload)); alert('Ответы сохранены'); } else alert('Нет соединения'); } catch(e){console.error(e);}
+    }); saveAllWrap.appendChild(saveAllBtn); questionsContainer.appendChild(saveAllWrap);
+
+    // prefill saved answers if provided (server includes saved_answers when sending show_round on connect)
+    if (round.saved_answers) {
+      const rows = questionsContainer.querySelectorAll('.sheet-row');
+      (round.questions || []).forEach((q, idx) => {
+        const data = round.saved_answers[q.id];
+        if (!data) return;
+        const row = rows[idx];
+        if (!row) return;
+        if (data.answer_text) {
+          const open = row.querySelector('.open-answer-input'); if (open) open.value = data.answer_text;
+          const opts = row.querySelectorAll('.options button'); if (opts.length) { Array.from(opts).forEach(b=>{ if (b.dataset.value === data.answer_text) b.classList.add('selected'); }); }
+        }
+        if (data.bet_used) {
+          const bh = row.querySelector('.bet-hidden'); if (bh) bh.value = data.bet_used;
+        }
+      });
     }
   }
 

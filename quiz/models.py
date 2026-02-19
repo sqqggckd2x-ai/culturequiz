@@ -18,8 +18,11 @@ class Game(models.Model):
     is_active = models.BooleanField('Активна', default=True)
     # currently active question and whether accepting answers
     active_question = models.ForeignKey('Question', on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    # currently active round (for round-level sending)
+    active_round = models.ForeignKey('Round', on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
     accepting_answers = models.BooleanField('Принимаются ответы', default=False)
     active_question_started_at = models.DateTimeField('Время старта активного вопроса', null=True, blank=True)
+    active_round_started_at = models.DateTimeField('Время старта активного раунда', null=True, blank=True)
     mode = models.CharField('Режим', max_length=20, choices=MODE_CHOICES, default=MODE_INDIVIDUAL)
 
     def __str__(self):
