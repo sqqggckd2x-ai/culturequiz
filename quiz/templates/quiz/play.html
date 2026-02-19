@@ -5,90 +5,78 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Игра — {{ game.title }}</title>
-  <style>body{font-family:Arial,Helvetica,sans-serif;margin:20px;}#status{margin-bottom:10px}</style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#f7f7f7}
+    .container{max-width:1000px;margin:0 auto;padding:16px}
+    .video-wrap{background:#000;padding-top:56.25%;position:relative}
+    .video-wrap iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0}
+    .answer-area{position:relative;z-index:5}
+    .video-wrap{z-index:0}
+    .answer-area{background:#fff;margin-top:12px;padding:12px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+    .question-text{font-size:18px;margin-bottom:8px}
+    .options{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+    .options button{padding:8px 12px;border:1px solid #ddd;background:#fafafa;border-radius:4px;cursor:pointer}
+    .options button.selected{background:#dff0d8;border-color:#6abf69}
+    .bet-btn{padding:6px 10px;margin-right:6px;border:1px solid #cfcfcf;background:#f5f7fa;border-radius:4px}
+    .bet-btn.selected{background:#dff0d8;border-color:#6abf69}
+    .options button.disabled{opacity:.5;cursor:not-allowed}
+    .bet {margin-top:8px}
+    .countdown{font-weight:bold;margin-left:8px}
+    .hidden{display:none}
+  </style>
 </head>
 <body>
-  <h1>{{ game.title }}</h1>
-  <div id="status">Подключение к WebSocket: <code id="ws-url">{{ ws_url }}</code></div>
-  {% load static %}
-  <!DOCTYPE html>
-  <html lang="ru">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Игра — {{ game.title }}</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
-    <style>
-      body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#f7f7f7}
-      .container{max-width:1000px;margin:0 auto;padding:16px}
-      .video-wrap{background:#000;padding-top:56.25%;position:relative}
-      .video-wrap iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0}
-      .answer-area{position:relative;z-index:5}
-      .video-wrap{z-index:0}
-      .answer-area{background:#fff;margin-top:12px;padding:12px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.08)}
-      .question-text{font-size:18px;margin-bottom:8px}
-      .options{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
-      .options button{padding:8px 12px;border:1px solid #ddd;background:#fafafa;border-radius:4px;cursor:pointer}
-      .options button.selected{background:#dff0d8;border-color:#6abf69}
-      .bet-btn{padding:6px 10px;margin-right:6px;border:1px solid #cfcfcf;background:#f5f7fa;border-radius:4px}
-      .bet-btn.selected{background:#dff0d8;border-color:#6abf69}
-      .options button.disabled{opacity:.5;cursor:not-allowed}
-      .bet {margin-top:8px}
-      .countdown{font-weight:bold;margin-left:8px}
-      .hidden{display:none}
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <h1>{{ game.title }}</h1>
+  <div class="container">
+    <h1>{{ game.title }}</h1>
 
-      <div class="video-wrap" id="video">
-        <!-- Use per-game embed HTML or URL if provided. If admin pasted full <iframe> markup,
-             render it raw (safe). Otherwise treat value as a src URL. -->
-        {% if game.video_url %}
-          {% if '<iframe' in game.video_url %}
-            {{ game.video_url|safe }}
-          {% else %}
-            <iframe src="{{ game.video_url }}" allowfullscreen title="Видео"></iframe>
-          {% endif %}
+    <div class="video-wrap" id="video">
+      <!-- Use per-game embed HTML or URL if provided. If admin pasted full <iframe> markup,
+           render it raw (safe). Otherwise treat value as a src URL. -->
+      {% if game.video_url %}
+        {% if '<iframe' in game.video_url %}
+          {{ game.video_url|safe }}
         {% else %}
-          <iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" allowfullscreen title="Видео"></iframe>
+          <iframe src="{{ game.video_url }}" allowfullscreen title="Видео"></iframe>
         {% endif %}
-      </div>
-
-      <div class="answer-area" id="answer-area">
-        <div class="meta">Подключение к WebSocket: <span id="ws-status">...</span></div>
-
-        <div id="question-box" class="hidden">
-          <div class="question-text" id="question-text"></div>
-          <div class="options" id="options"></div>
-
-          <div id="open-input" class="hidden">
-            <input type="text" id="open-answer" placeholder="Введите ответ" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px">
-          </div>
-
-          <div class="bet hidden" id="bet-area">
-            <!-- Bet UI is rendered by JS: strict buttons (+1/+2). Hidden input stores selected value -->
-            <div class="bet-controls" id="bet-controls"></div>
-            <input type="hidden" id="bet-input-hidden" value="0">
-          </div>
-
-            <div style="margin-top:8px">
-            <button id="submit-btn" type="button">Отправить</button>
-            <span class="countdown" id="countdown"></span>
-          </div>
-        </div>
-
-        <div id="no-question">Ожидание вопроса...</div>
-      </div>
+      {% else %}
+        <iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" allowfullscreen title="Видео"></iframe>
+      {% endif %}
     </div>
 
-    <script>
-      window.PLAY_CONFIG = {
-        ws_url: '{{ ws_url }}',
-        participant_id: '{{ participant_id|default_if_none:"" }}',
-      };
-    </script>
-    <script src="{% static 'quiz/js/play.js' %}"></script>
-  </body>
-  </html>
+    <div class="answer-area" id="answer-area">
+      <div class="meta">Подключение к WebSocket: <span id="ws-status">...</span></div>
+
+      <div id="question-box" class="hidden">
+        <div class="question-text" id="question-text"></div>
+        <div class="options" id="options"></div>
+
+        <div id="open-input" class="hidden">
+          <input type="text" id="open-answer" placeholder="Введите ответ" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px">
+        </div>
+
+        <div class="bet hidden" id="bet-area">
+          <!-- Bet UI is rendered by JS: strict buttons (+1/+2). Hidden input stores selected value -->
+          <div class="bet-controls" id="bet-controls"></div>
+          <input type="hidden" id="bet-input-hidden" value="0">
+        </div>
+
+        <div style="margin-top:8px">
+          <button id="submit-btn" type="button">Отправить</button>
+          <span class="countdown" id="countdown"></span>
+        </div>
+      </div>
+
+      <div id="no-question">Ожидание вопроса...</div>
+    </div>
+  </div>
+
+  <script>
+    window.PLAY_CONFIG = {
+      ws_url: '{{ ws_url }}',
+      participant_id: '{{ participant_id|default_if_none:"" }}',
+    };
+  </script>
+  <script src="{% static 'quiz/js/play.js' %}"></script>
+</body>
+</html>
