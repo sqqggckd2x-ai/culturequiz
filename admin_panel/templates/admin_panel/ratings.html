@@ -15,17 +15,29 @@
 
   <table>
     <thead>
-      <tr><th>#</th><th>Участник</th><th>Счёт</th></tr>
+      <tr>
+        <th>#</th>
+        <th>Участник</th>
+        {% for rnd in rounds %}
+          <th>Раунд {{ forloop.counter }}</th>
+        {% endfor %}
+        <th>Итого</th>
+      </tr>
     </thead>
     <tbody>
       {% for r in ratings %}
         <tr>
           <td>{{ forloop.counter }}</td>
           <td>{{ r.participant.team_name|default:r.participant.session_key }}</td>
+          {% for val in r.per_round %}
+            <td>{{ val }}</td>
+          {% endfor %}
           <td>{{ r.score }}</td>
         </tr>
       {% empty %}
-        <tr><td colspan="3">Нет участников</td></tr>
+        {% with total_cols=rounds|length|add:"3" %}
+          <tr><td colspan="{{ total_cols }}">Нет участников</td></tr>
+        {% endwith %}
       {% endfor %}
     </tbody>
   </table>

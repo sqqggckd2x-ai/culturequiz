@@ -161,13 +161,19 @@ def moderate_answers_question(request, game_id, question_id):
 def participants_rating(request, game_id):
     game = get_object_or_404(Game, pk=game_id)
     participants = list(game.participants.all())
+    rounds = list(game.rounds.all().order_by('pk'))
     ratings = []
     for p in participants:
-        total = Answer.objects.filter(user_id=p.session_key, question__round__game=game, points_awarded__isnull=False).aggregate(total=models.Sum('points_awarded'))['total'] or 0
-        ratings.append({'participant': p, 'score': total})
+        per_round = []
+        total_score = 0
+        for r in rounds:
+            rsum = Answer.objects.filter(user_id=p.session_key, question__round=r, points_awarded__isnull=False).aggregate(total=models.Sum('points_awarded'))['total'] or 0
+            per_round.append(rsum)
+            total_score += rsum
+        ratings.append({'participant': p, 'per_round': per_round, 'score': total_score})
 
     ratings_sorted = sorted(ratings, key=lambda r: r['score'], reverse=True)
-    return render(request, 'admin_panel/ratings.html', {'game': game, 'ratings': ratings_sorted})
+    return render(request, 'admin_panel/ratings.html', {'game': game, 'ratings': ratings_sorted, 'rounds': rounds})
 
 
 def public_participants_rating(request, game_id):
@@ -178,10 +184,16 @@ def public_participants_rating(request, game_id):
     """
     game = get_object_or_404(Game, pk=game_id)
     participants = list(game.participants.all())
+    rounds = list(game.rounds.all().order_by('pk'))
     ratings = []
     for p in participants:
-        total = Answer.objects.filter(user_id=p.session_key, question__round__game=game, points_awarded__isnull=False).aggregate(total=models.Sum('points_awarded'))['total'] or 0
-        ratings.append({'participant': p, 'score': total})
+        per_round = []
+        total_score = 0
+        for r in rounds:
+            rsum = Answer.objects.filter(user_id=p.session_key, question__round=r, points_awarded__isnull=False).aggregate(total=models.Sum('points_awarded'))['total'] or 0
+            per_round.append(rsum)
+            total_score += rsum
+        ratings.append({'participant': p, 'per_round': per_round, 'score': total_score})
 
     ratings_sorted = sorted(ratings, key=lambda r: r['score'], reverse=True)
-    return render(request, 'admin_panel/ratings.html', {'game': game, 'ratings': ratings_sorted, 'public': True})
+    return render(request, 'admin_panel/ratings.html', {'game': game, 'ratings': ratings_sorted, 'rounds': rounds, 'public': True})
