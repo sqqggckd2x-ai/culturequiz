@@ -4,21 +4,14 @@
   const participantId = cfg.participant_id || null;
 
   const statusEl = document.getElementById('ws-status');
-  const questionBox = document.getElementById('question-box');
+  const questionsContainer = document.getElementById('questions-container');
   const noQuestion = document.getElementById('no-question');
-  const questionText = document.getElementById('question-text');
-  const optionsEl = document.getElementById('options');
-  const openInput = document.getElementById('open-input');
-  const openAnswer = document.getElementById('open-answer');
-  const submitBtn = document.getElementById('submit-btn');
-  const countdownEl = document.getElementById('countdown');
-  const betArea = document.getElementById('bet-area');
-  const betInput = document.getElementById('bet-input');
-  const maxBetEl = document.getElementById('max-bet');
+  const statusElWs = document.getElementById('ws-status');
 
   let ws = null;
   let countdownTimer = null;
-  let currentQuestion = null;
+  let activeQuestions = {}; // map question_id -> question data
+
   let inputsEnabled = true;
 
   function connect() {
@@ -56,110 +49,95 @@
   }
 
   function showQuestion(msg) {
-    // disable iframe click handling so embed doesn't steal clicks
+    // each show_question message represents one question to be added to participant's screen
+    const q = msg.question || msg;
+    if (!q || !q.id) return;
+    // append if not already present
+    if (activeQuestions[q.id]) return;
+    activeQuestions[q.id] = q;
+
+    // disable iframe clicks while any questions are active
     setIframePointer(false);
-    currentQuestion = msg.question || msg;
-    // expected fields: id, text, type, options (array), time (seconds), allow_bet, max_bet
-    questionText.innerText = currentQuestion.text || '';
-    optionsEl.innerHTML = '';
-    openAnswer.value = '';
-
-    if (currentQuestion.type === 'choice') {
-      openInput.classList.add('hidden');
-      optionsEl.classList.remove('hidden');
-      (currentQuestion.options || []).forEach((opt, idx) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.innerText = opt;
-        btn.dataset.value = opt;
-        btn.addEventListener('click', (e) => { e.stopPropagation(); selectOption(btn); });
-        btn.style.cursor = 'pointer';
-        optionsEl.appendChild(btn);
-      });
-    } else {
-      optionsEl.classList.add('hidden');
-      openInput.classList.remove('hidden');
-    }
-
-    if (currentQuestion.allow_bet) {
-      // show strict bet controls: two buttons +1 and +2
-      betArea.classList.remove('hidden');
-      // hide any existing numeric input rendered by template
-      const existingNumber = betArea.querySelector('input[type="number"]');
-      if (existingNumber) {
-        // hide the numeric input and its surrounding label if present
-        const lbl = existingNumber.closest('label');
-        if (lbl) lbl.style.display = 'none';
-        else existingNumber.style.display = 'none';
-      }
-
-      // ensure we have a hidden input to store selected bet value
-      let hidden = document.getElementById('bet-input-hidden');
-      if (!hidden) {
-        hidden = document.createElement('input');
-        hidden.type = 'hidden';
-        hidden.id = 'bet-input-hidden';
-        betArea.appendChild(hidden);
-      }
-      hidden.value = 0;
-
-      // remove previous rendered bet buttons (if any)
-      betArea.querySelectorAll('.bet-btn')?.forEach(b=>b.remove());
-
-      const btn1 = document.createElement('button');
-      btn1.type = 'button'; btn1.className = 'bet-btn'; btn1.dataset.bet = '1'; btn1.innerText = '+1';
-      const btn2 = document.createElement('button');
-      btn2.type = 'button'; btn2.className = 'bet-btn'; btn2.dataset.bet = '2'; btn2.innerText = '+2';
-      btn1.addEventListener('click', (e) => { e.stopPropagation(); hidden.value = 1; btn1.classList.add('selected'); btn2.classList.remove('selected'); console.log('bet +1 selected'); });
-      btn2.addEventListener('click', (e) => { e.stopPropagation(); hidden.value = 2; btn2.classList.add('selected'); btn1.classList.remove('selected'); console.log('bet +2 selected'); });
-      btn1.style.cursor = 'pointer';
-      btn2.style.cursor = 'pointer';
-      betArea.appendChild(btn1);
-      betArea.appendChild(btn2);
-    } else {
-      betArea.classList.add('hidden');
-    }
-
     noQuestion.classList.add('hidden');
-    questionBox.classList.remove('hidden');
-    inputsEnabled = true;
-    // re-query controls (in case DOM changed) and re-enable them
-    const _submit = document.getElementById('submit-btn');
-    const _openAnswer = document.getElementById('open-answer');
-    if (_submit) { _submit.disabled = false; _submit.removeAttribute('disabled'); }
-    if (_openAnswer) { _openAnswer.disabled = false; }
-    // remove disabled/selected classes from previous options and enable them
-    Array.from(optionsEl.children).forEach(c => { c.classList.remove('disabled', 'selected'); c.disabled = false; });
-    // ensure submit handler is attached (rebind to be safe on mobile)
-    if (_submit) {
-      try { _submit.removeEventListener('click', handleSubmitClick); } catch(e) {}
-      _submit.addEventListener('click', handleSubmitClick);
+
+    const card = document.createElement('div');
+    card.className = 'question-card';
+    card.dataset.qid = q.id;
+    card.style.border = '1px solid #eee';
+    card.style.padding = '8px';
+    card.style.marginBottom = '8px';
+
+    const title = document.createElement('div');
+    title.className = 'question-text';
+    title.innerText = q.text || '';
+    card.appendChild(title);
+
+    const controls = document.createElement('div');
+    controls.className = 'question-controls';
+
+    if (q.type === 'choice') {
+      const opts = document.createElement('div');
+      opts.className = 'options';
+      (q.options || []).forEach(opt => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.innerText = opt; b.dataset.value = opt; b.style.cursor = 'pointer';
+        b.addEventListener('click', (e) => { e.stopPropagation(); Array.from(opts.children).forEach(c=>c.classList.remove('selected')); b.classList.add('selected'); });
+        opts.appendChild(b);
+      });
+      controls.appendChild(opts);
+    } else {
+      const inp = document.createElement('input');
+      inp.type = 'text'; inp.style.width = '100%'; inp.placeholder = 'Введите ответ'; inp.className = 'open-answer-input';
+      controls.appendChild(inp);
     }
 
-    // start countdown — if server provided a start timestamp, compute remaining time
-    try {
-      const total = Number(currentQuestion.time || 30);
-      // Prefer numeric epoch seconds if provided (more robust across browsers)
-      if (currentQuestion.started_at_ts) {
-        const started = new Date(Number(currentQuestion.started_at_ts) * 1000);
-        const now = new Date();
-        let elapsed = Math.floor((now - started) / 1000);
-        if (isNaN(elapsed) || elapsed < 0) elapsed = 0;
-        const rem = Math.max(0, total - elapsed);
-        startCountdown(rem);
-      } else if (currentQuestion.started_at) {
-        const started = new Date(currentQuestion.started_at);
-        const now = new Date();
-        let elapsed = Math.floor((now - started) / 1000);
-        if (isNaN(elapsed) || elapsed < 0) elapsed = 0;
-        const rem = Math.max(0, total - elapsed);
-        startCountdown(rem);
-      } else {
-        startCountdown(total);
-      }
-    } catch (e) {
-      startCountdown(currentQuestion.time || 30);
+    // bet controls
+    if (q.allow_bet) {
+      const betWrap = document.createElement('div'); betWrap.className = 'bet';
+      const hidden = document.createElement('input'); hidden.type = 'hidden'; hidden.className = 'bet-hidden'; hidden.value = 0;
+      const b1 = document.createElement('button'); b1.type='button'; b1.innerText='+1'; b1.className='bet-btn'; b1.style.cursor='pointer';
+      const b2 = document.createElement('button'); b2.type='button'; b2.innerText='+2'; b2.className='bet-btn'; b2.style.cursor='pointer';
+      b1.addEventListener('click',(e)=>{ e.stopPropagation(); hidden.value=1; b1.classList.add('selected'); b2.classList.remove('selected'); });
+      b2.addEventListener('click',(e)=>{ e.stopPropagation(); hidden.value=2; b2.classList.add('selected'); b1.classList.remove('selected'); });
+      betWrap.appendChild(b1); betWrap.appendChild(b2); betWrap.appendChild(hidden);
+      controls.appendChild(betWrap);
     }
+
+    const saveWrap = document.createElement('div'); saveWrap.style.marginTop='8px';
+    const saveBtn = document.createElement('button'); saveBtn.type='button'; saveBtn.innerText='Сохранить'; saveBtn.style.cursor='pointer';
+    const savedLabel = document.createElement('span'); savedLabel.style.marginLeft='8px'; savedLabel.innerText='';
+    saveBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // collect answer
+      let answer = null;
+      if (q.type === 'choice') {
+        const sel = card.querySelector('.options button.selected');
+        if (!sel) { alert('Выберите вариант'); return; }
+        answer = sel.dataset.value;
+      } else {
+        const inp = card.querySelector('.open-answer-input');
+        answer = (inp && inp.value) ? inp.value.trim() : '';
+        if (!answer) { alert('Введите ответ'); return; }
+      }
+      const betHidden = card.querySelector('.bet-hidden');
+      const bet = (betHidden && betHidden.value) ? Number(betHidden.value) : 0;
+
+      const payload = { action: 'save_answer', question_id: q.id, answer: answer, bet: bet, participant_id: participantId };
+      try {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify(payload));
+          savedLabel.innerText = 'Сохранено';
+          savedLabel.style.color = 'green';
+        } else {
+          alert('Соединение недоступно');
+        }
+      } catch (err) { console.error('send error', err); }
+    });
+    saveWrap.appendChild(saveBtn); saveWrap.appendChild(savedLabel);
+    controls.appendChild(saveWrap);
+
+    card.appendChild(controls);
+    questionsContainer.appendChild(card);
   }
 
   function selectOption(btn) {
@@ -171,10 +149,10 @@
 
   function stopAnswers() {
     inputsEnabled = false;
-    submitBtn.disabled = true;
-    Array.from(optionsEl.children).forEach(c => c.classList.add('disabled'));
-    openAnswer.disabled = true;
-    clearCountdown();
+    // clear questions from participant screens when round stops
+    activeQuestions = {};
+    questionsContainer.innerHTML = '';
+    noQuestion.classList.remove('hidden');
     // re-enable iframe interactions when answers are stopped
     setIframePointer(true);
   }
@@ -208,54 +186,7 @@
     countdownEl.innerText = '';
   }
 
-  // named submit handler so we can re-bind on mobile reliably
-  function handleSubmitClick() {
-    if (!currentQuestion) return;
-    if (!inputsEnabled) {
-      console.warn('inputs disabled, forcing submit for debug');
-      inputsEnabled = true;
-    }
-
-    let answer = null;
-    if (currentQuestion.type === 'choice') {
-      const sel = Array.from(optionsEl.children).find(c => c.classList.contains('selected'));
-      if (!sel) { alert('Выберите вариант'); return; }
-      answer = sel.dataset.value;
-    } else {
-      answer = openAnswer.value.trim();
-      if (!answer) { alert('Введите ответ'); return; }
-    }
-
-    // read from our hidden input (fall back to legacy id if present)
-    const hiddenBet = document.getElementById('bet-input-hidden') || document.getElementById('bet-input');
-    const bet = currentQuestion.allow_bet ? Number((hiddenBet && hiddenBet.value) ? hiddenBet.value : 0) : null;
-
-    const payload = {
-      action: 'submit_answer',
-      question_id: currentQuestion.id,
-      answer: answer,
-      bet: bet,
-      participant_id: participantId,
-    };
-    console.log('sending payload', payload, 'wsState=', ws && ws.readyState);
-    try {
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify(payload));
-        console.log('payload sent');
-      } else {
-        console.warn('WebSocket not open; cannot send');
-      }
-    } catch (err) {
-      console.error('send error', err);
-    }
-    // temporarily re-enable/disable UI: allow disabling after send
-    try { stopAnswers(); } catch(e) { console.warn('stopAnswers failed', e); }
-  }
-
-  // attach initial handler
-  if (submitBtn) {
-    submitBtn.addEventListener('click', handleSubmitClick);
-  }
+  // No global submit button anymore; each question has its own Save.
 
   // start
   connect();

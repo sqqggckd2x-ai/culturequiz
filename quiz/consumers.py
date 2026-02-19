@@ -84,15 +84,30 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             )
 
         elif action == 'submit_answer':
-            # payload should contain 'question_id', 'answer', and optional 'bet'
+            # legacy handling — treat as save
             question_id = content.get('question_id')
             answer_text = content.get('answer')
             bet = content.get('bet')
             participant_id = content.get('participant_id') or getattr(self, 'participant_id', None)
-
-            # persist answer to DB
-            saved_id = await self._save_answer(participant_id, question_id, answer_text, bet)
-
+            saved_id = await self._save_or_update_answer(participant_id, question_id, answer_text, bet)
+            await self.channel_layer.group_send(
+                self.group_name,
+                {
+                    'type': 'player_submit',
+                    'participant_id': participant_id,
+                    'question_id': question_id,
+                    'answer': answer_text,
+                    'bet': bet,
+                    'answer_id': saved_id,
+                }
+            )
+        elif action == 'save_answer':
+            question_id = content.get('question_id')
+            answer_text = content.get('answer')
+            bet = content.get('bet')
+            participant_id = content.get('participant_id') or getattr(self, 'participant_id', None)
+            saved_id = await self._save_or_update_answer(participant_id, question_id, answer_text, bet)
+            # no broadcast needed for every save, but we can acknowledge via player_submit
             await self.channel_layer.group_send(
                 self.group_name,
                 {
@@ -175,4 +190,53 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             answer_text=answer_text or '',
             bet_used=bet_stored,
         )
+        return ans.id
+
+    @database_sync_to_async
+    def _save_or_update_answer(self, participant_id, question_id, answer_text, bet):
+        try:
+            question = Question.objects.get(pk=question_id)
+        except Question.DoesNotExist:
+            return None
+
+        # ensure the game's accepting_answers flag is True
+        g = question.round.game
+        if not getattr(g, 'accepting_answers', False):
+            return None
+
+        participant = None
+        if participant_id:
+            participant = Participant.objects.filter(id=participant_id).first()
+
+        user_id = participant.session_key if participant else 'anon'
+        team_name = participant.team_name if participant else None
+
+        # sanitize bet: only allow 1 or 2 (0 = no bet)
+        if question.allow_bet:
+            try:
+                bval = int(bet) if bet is not None else 0
+            except Exception:
+                bval = 0
+            if bval not in (0,1,2):
+                bval = 0
+            bet_stored = bval
+        else:
+            bet_stored = None
+
+        # find existing answer for this user and question, update it; else create
+        ans = Answer.objects.filter(question=question, user_id=user_id).first()
+        if ans:
+            ans.answer_text = answer_text or ''
+            ans.bet_used = bet_stored
+            ans.is_correct = None
+            ans.points_awarded = None
+            ans.save()
+        else:
+            ans = Answer.objects.create(
+                question=question,
+                user_id=user_id,
+                team_name=team_name,
+                answer_text=answer_text or '',
+                bet_used=bet_stored,
+            )
         return ans.id

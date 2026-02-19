@@ -47,25 +47,8 @@
     <div class="answer-area" id="answer-area">
       <div class="meta">Подключение к WebSocket: <span id="ws-status">...</span></div>
 
-      <div id="question-box" class="hidden">
-        <div class="question-text" id="question-text"></div>
-        <div class="options" id="options"></div>
-
-        <div id="open-input" class="hidden">
-          <input type="text" id="open-answer" placeholder="Введите ответ" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px">
-        </div>
-
-        <div class="bet hidden" id="bet-area">
-          <!-- Bet UI is rendered by JS: strict buttons (+1/+2). Hidden input stores selected value -->
-          <div class="bet-controls" id="bet-controls"></div>
-          <input type="hidden" id="bet-input-hidden" value="0">
-        </div>
-
-        <div style="margin-top:8px">
-          <button id="submit-btn" type="button">Отправить</button>
-          <span class="countdown" id="countdown"></span>
-        </div>
-      </div>
+      <!-- Контейнер для нескольких вопросов раунда -->
+      <div id="questions-container"></div>
 
       <div id="no-question">Ожидание вопроса...</div>
     </div>
