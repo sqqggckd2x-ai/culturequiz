@@ -136,8 +136,22 @@
       _submit.addEventListener('click', handleSubmitClick);
     }
 
-    // start countdown
-    startCountdown(currentQuestion.time || 30);
+    // start countdown — if server provided a start timestamp, compute remaining time
+    try {
+      const total = Number(currentQuestion.time || 30);
+      if (currentQuestion.started_at) {
+        const started = new Date(currentQuestion.started_at);
+        const now = new Date();
+        let elapsed = Math.floor((now - started) / 1000);
+        if (isNaN(elapsed) || elapsed < 0) elapsed = 0;
+        const rem = Math.max(0, total - elapsed);
+        startCountdown(rem);
+      } else {
+        startCountdown(total);
+      }
+    } catch (e) {
+      startCountdown(currentQuestion.time || 30);
+    }
   }
 
   function selectOption(btn) {

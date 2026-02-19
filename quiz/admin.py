@@ -11,6 +11,7 @@ from django.shortcuts import redirect
 from django.utils.html import format_html
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -226,7 +227,13 @@ class QuestionAdmin(admin.ModelAdmin):
             return redirect(request.META.get('HTTP_REFERER', '..'))
 
         game = q.round.game
-        # build question payload
+        # mark game state: active question and start time
+        game.active_question = q
+        game.accepting_answers = True
+        game.active_question_started_at = timezone.now()
+        game.save()
+
+        # build question payload including server start timestamp for sync
         question_payload = {
             'id': q.pk,
             'text': q.text,
@@ -235,6 +242,7 @@ class QuestionAdmin(admin.ModelAdmin):
             'time': getattr(q, 'time_limit', 30),
             'allow_bet': bool(q.allow_bet),
             'max_bet': getattr(q, 'max_bet', 10),
+            'started_at': game.active_question_started_at.isoformat(),
         }
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(
@@ -253,6 +261,10 @@ class QuestionAdmin(admin.ModelAdmin):
             self.message_user(request, 'Вопрос не найден', level='error')
             return redirect(request.META.get('HTTP_REFERER', '..'))
         game = q.round.game
+        # clear accepting and start time
+        game.accepting_answers = False
+        game.active_question_started_at = None
+        game.save()
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(
             f'game_{game.id}',

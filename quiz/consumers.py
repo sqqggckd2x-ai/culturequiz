@@ -18,7 +18,13 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         def _get_state(gid):
             try:
                 g = Game.objects.select_related('active_question').get(pk=gid)
-                return {'accepting': g.accepting_answers, 'question_id': g.active_question_id}
+                started = None
+                try:
+                    if g.active_question_started_at:
+                        started = g.active_question_started_at.isoformat()
+                except Exception:
+                    started = None
+                return {'accepting': g.accepting_answers, 'question_id': g.active_question_id, 'started_at': started}
             except Exception:
                 return {'accepting': False, 'question_id': None}
 
@@ -28,6 +34,14 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             def _load_question(qid):
                 try:
                     q = Question.objects.get(pk=qid)
+                    # Try to fetch started_at from the game's active_question_started_at if set
+                    g = q.round.game
+                    started = None
+                    try:
+                        if g.active_question_started_at:
+                            started = g.active_question_started_at.isoformat()
+                    except Exception:
+                        started = None
                     return {
                         'id': q.pk,
                         'text': q.text,
@@ -36,6 +50,7 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                         'time': getattr(q, 'time_limit', 30),
                         'allow_bet': bool(q.allow_bet),
                         'max_bet': getattr(q, 'max_bet', 10),
+                        'started_at': started,
                     }
                 except Exception:
                     return None

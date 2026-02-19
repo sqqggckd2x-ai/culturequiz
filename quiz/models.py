@@ -19,6 +19,7 @@ class Game(models.Model):
     # currently active question and whether accepting answers
     active_question = models.ForeignKey('Question', on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
     accepting_answers = models.BooleanField('Принимаются ответы', default=False)
+    active_question_started_at = models.DateTimeField('Время старта активного вопроса', null=True, blank=True)
     mode = models.CharField('Режим', max_length=20, choices=MODE_CHOICES, default=MODE_INDIVIDUAL)
 
     def __str__(self):
